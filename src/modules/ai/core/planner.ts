@@ -35,7 +35,7 @@ export class Planner {
         ...history,
         { role: "user", content: intent }
       ],
-      tools,
+      tools: tools as any,
     });
 
     return {
