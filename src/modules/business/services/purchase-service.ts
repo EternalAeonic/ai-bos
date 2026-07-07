@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { withBusinessContext } from "@/lib/auth";
+import { withBusinessContext } from "@/lib/prisma";
 
 export class PurchaseService {
   static async createPurchaseOrder(businessId: string, userId: string | null, supplierId: string, totalCost: number) {
