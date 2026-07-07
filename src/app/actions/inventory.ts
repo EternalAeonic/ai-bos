@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { ProductService } from "@/modules/inventory/services/product-service";
 import { CategoryService } from "@/modules/inventory/services/category-service";
 import { WarehouseService } from "@/modules/inventory/services/warehouse-service";
+import { SupplierService } from "@/modules/inventory/services/supplier-service";
 import { InventoryMovementService } from "@/modules/inventory/services/movement-service";
 import { StockCalculationService } from "@/modules/inventory/services/stock-service";
 
@@ -67,6 +68,17 @@ export async function createWarehouseAction(businessId: string, userId: string, 
 export async function updateWarehouseAction(businessId: string, userId: string, warehouseId: string, data: any) {
   // Not implemented in WarehouseService yet, throwing error
   throw new Error("Update warehouse not implemented");
+}
+
+// ==========================================
+// SUPPLIERS
+// ==========================================
+
+export async function createSupplierAction(businessId: string, userId: string, data: any) {
+  const result = await SupplierService.create(businessId, userId, data);
+  revalidatePath("/dashboard/inventory/suppliers");
+  revalidatePath("/dashboard/inventory/products/new");
+  return result;
 }
 
 // ==========================================

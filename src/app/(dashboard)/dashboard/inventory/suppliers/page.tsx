@@ -17,12 +17,13 @@ export default async function SuppliersPage() {
           <h2 className="text-3xl font-bold tracking-tight">Suppliers</h2>
           <p className="text-muted-foreground mt-1">Manage your vendors and suppliers.</p>
         </div>
-        <button
+        <Link
+          href="/dashboard/inventory/suppliers/new"
           className="flex items-center gap-2 px-4 py-2 bg-[#00D9C0] hover:bg-[#00c2ab] text-[#0B0F1A] text-sm font-bold rounded-xl transition-all shadow-[0_8px_24px_rgba(0,217,192,0.25)] hover:shadow-[0_8px_32px_rgba(0,217,192,0.4)]"
         >
           <Plus className="w-4 h-4" />
           Add Supplier
-        </button>
+        </Link>
       </div>
 
       <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden mt-6">
@@ -33,10 +34,10 @@ export default async function SuppliersPage() {
              </div>
              <h3 className="text-lg font-bold text-white mb-2">No Suppliers Yet</h3>
              <p className="text-sm text-white/50 max-w-sm mb-6">Add your suppliers to link them to products and generate purchase orders.</p>
-             <button className="flex items-center gap-2 px-6 py-3 bg-white/[0.05] hover:bg-white/[0.1] text-white text-sm font-bold rounded-xl transition-all border border-white/[0.1]">
+             <Link href="/dashboard/inventory/suppliers/new" className="flex items-center gap-2 px-6 py-3 bg-white/[0.05] hover:bg-white/[0.1] text-white text-sm font-bold rounded-xl transition-all border border-white/[0.1]">
                 <Plus className="w-4 h-4" />
                 Add Supplier
-             </button>
+             </Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
