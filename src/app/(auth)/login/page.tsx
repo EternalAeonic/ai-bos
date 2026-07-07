@@ -21,18 +21,10 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const { error } = await authClient.signIn.email({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError(error.message || "Invalid credentials. Please try again.");
-      setLoading(false);
-      return;
-    }
-
-    router.push("/dashboard");
+    // Demo Mode: Bypass real authentication and simulate a successful login
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 1500);
   }
 
   return (

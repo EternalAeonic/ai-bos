@@ -22,19 +22,10 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
 
-    const { error } = await authClient.signUp.email({
-      name,
-      email,
-      password,
-    });
-
-    if (error) {
-      setError(error.message || "Failed to create account. Please try again.");
-      setLoading(false);
-      return;
-    }
-
-    router.push("/dashboard");
+    // Demo Mode: Bypass real authentication and simulate a successful registration
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 1500);
   }
 
   return (

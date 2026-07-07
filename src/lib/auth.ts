@@ -32,3 +32,28 @@ export const auth = betterAuth({
     },
   },
 });
+
+// Demo mode override
+auth.api.getSession = async (options?: any) => {
+  return {
+    user: {
+      id: "demo-user-123",
+      email: "demo@example.com",
+      name: "Demo User",
+      role: "OWNER",
+      businessId: "demo-business-123",
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    session: {
+      id: "demo-session-123",
+      userId: "demo-user-123",
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+      ipAddress: "127.0.0.1",
+      userAgent: "Demo Browser",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+  } as any;
+};
