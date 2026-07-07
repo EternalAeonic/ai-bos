@@ -24,6 +24,7 @@ export type BusinessIdentityInput = z.infer<typeof BusinessIdentitySchema>;
 
 // ─── Step 3: Locations ───────────────────────────────────────
 export const LocationSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, "Location name is required"),
   type: z.enum(["WAREHOUSE", "STORE", "OFFICE", "FACTORY"]),
   address: z.string().optional(),
@@ -41,6 +42,7 @@ export type LocationInput = z.infer<typeof LocationSchema>;
 
 // ─── Step 4: Departments ─────────────────────────────────────
 export const DepartmentSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, "Department name is required"),
   parentDepartmentId: z.string().optional(),
 });
@@ -51,6 +53,7 @@ export type DepartmentInput = z.infer<typeof DepartmentSchema>;
 
 // ─── Step 5: Employees ───────────────────────────────────────
 export const EmployeeSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, "Employee name is required"),
   email: z.string().email("Must be a valid email"),
   jobTitle: z.string().optional(),
@@ -75,6 +78,7 @@ export type RoleInput = z.infer<typeof RoleSchema>;
 
 // ─── Step 8: Suppliers ───────────────────────────────────────
 export const SupplierSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, "Supplier name is required"),
   contactPerson: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
@@ -94,6 +98,7 @@ export type SupplierInput = z.infer<typeof SupplierSchema>;
 
 // ─── Step 9: Customers ───────────────────────────────────────
 export const CustomerSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, "Customer name is required"),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
@@ -133,6 +138,7 @@ export type FinanceConfigInput = z.infer<typeof FinanceConfigSchema>;
 
 // ─── Step 11: Taxes ──────────────────────────────────────────
 export const TaxRuleSchema = z.object({
+  id: z.string().optional(),
   taxType: z.string().min(1),
   name: z.string().min(1),
   rate: z.number().min(0).max(100),
@@ -148,6 +154,7 @@ export type TaxRuleInput = z.infer<typeof TaxRuleSchema>;
 
 // ─── Step 12: AI Settings ────────────────────────────────────
 export const AISettingsSchema = z.object({
+  assistantName: z.string().default("AI CEO"),
   autonomyLevel: z.enum(["MANUAL", "BALANCED", "AUTONOMOUS"]).default("BALANCED"),
   riskLow: z.enum(["AUTO", "NOTIFY", "APPROVE"]).default("AUTO"),
   riskMedium: z.enum(["AUTO", "NOTIFY", "APPROVE", "OWNER"]).default("APPROVE"),
@@ -161,6 +168,7 @@ export const AISettingsSchema = z.object({
   weeklyReport: z.boolean().default(true),
   monthlyReport: z.boolean().default(true),
   language: z.string().default("en"),
+  automaticSuggestions: z.boolean().default(true),
   workStart: z.string().default("09:00"),
   workEnd: z.string().default("18:00"),
 });

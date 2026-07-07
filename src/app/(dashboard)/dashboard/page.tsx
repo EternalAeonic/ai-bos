@@ -206,23 +206,24 @@ export default async function DashboardPage() {
 
         {/* Right: Activity + AI */}
         <div className="space-y-4">
-          {/* Business snapshot */}
           <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
             <h2 className="text-sm font-bold text-white mb-4">Business Snapshot</h2>
             <div className="space-y-3">
               {[
-                { label: "Locations", value: locationCount, icon: MapPin },
-                { label: "Departments", value: deptCount, icon: Users },
-                { label: "Employees", value: employeeCount, icon: Users },
-                { label: "Suppliers", value: supplierCount, icon: Truck },
-                { label: "Customers", value: customerCount, icon: Package },
+                { label: "Business Name", value: business?.name || "—", icon: Bot },
+                { label: "Industry", value: business?.industry || "—", icon: Zap },
+                { label: "Country", value: business?.country || "—", icon: MapPin },
+                { label: "Today's Date", value: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), icon: Clock },
+                { label: "Setup Completion", value: `${score}%`, icon: CheckCircle2 },
+                { label: "Business Health", value: score >= 80 ? "Healthy" : score >= 50 ? "In Progress" : "Needs Setup", icon: Users },
+                { label: "Next Step", value: business?.onboardingComplete ? "Operate Business" : "Complete Wizard", icon: ArrowUpRight },
               ].map((s) => (
                 <div key={s.label} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-white/40">
                     <s.icon className="w-3.5 h-3.5" />
                     {s.label}
                   </div>
-                  <span className={`font-bold ${s.value > 0 ? "text-white" : "text-white/20"}`}>{s.value}</span>
+                  <span className={`font-bold ${s.value && s.value !== "—" ? "text-white" : "text-white/20"}`}>{s.value}</span>
                 </div>
               ))}
             </div>

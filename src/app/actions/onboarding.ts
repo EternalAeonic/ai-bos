@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { AuditService } from "@/modules/audit/audit-service";
+import { getSession } from "@/lib/get-session";
 import {
   BusinessIdentityInput,
   LocationInput,
@@ -16,9 +16,13 @@ import {
 } from "@/schemas/onboarding";
 import { revalidatePath } from "next/cache";
 
-// Demo mode: fixed business ID
-const DEMO_BUSINESS_ID = "demo-business-123";
-const DEMO_USER_ID = "demo-user-123";
+// Import Domain Services
+import { LocationService } from "@/modules/business/services/location-service";
+import { DepartmentService } from "@/modules/business/services/department-service";
+import { EmployeeService } from "@/modules/business/services/employee-service";
+import { BusinessSupplierService } from "@/modules/business/services/supplier-service";
+import { CustomerService } from "@/modules/business/services/customer-service";
+import { RoleService } from "@/modules/business/services/role-service";
 
 // ── Utility: calculate setup score ──────────────────────────
 async function recalculateSetupScore(businessId: string): Promise<number> {
@@ -50,484 +54,274 @@ async function recalculateSetupScore(businessId: string): Promise<number> {
   return Math.min(score, 100);
 }
 
-// ── Step 2: Business Identity ────────────────────────────────
+async function updateScore(businessId: string) {
+  const score = await recalculateSetupScore(businessId);
+  await prisma.business.update({ where: { id: businessId }, data: { setupScore: score } });
+  revalidatePath("/dashboard");
+  return score;
+}
+
+// ── Step 1: Business Identity ────────────────────────────────
 export async function saveBusinessIdentityAction(data: BusinessIdentityInput) {
   try {
+    const { businessId, userId } = await getSession();
     const business = await prisma.business.upsert({
-      where: { id: DEMO_BUSINESS_ID },
+      where: { id: businessId },
       update: {
-        name: data.name,
-        legalName: data.legalName,
-        industry: data.industry,
-        businessType: data.businessType,
-        currency: data.currency,
-        timezone: data.timezone,
-        country: data.country,
-        website: data.website || null,
-        phone: data.phone,
-        logoUrl: data.logoUrl || null,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        postalCode: data.postalCode,
-        gstNumber: data.gstNumber,
-        vatNumber: data.vatNumber,
-        registrationNumber: data.registrationNumber,
-        onboardingStep: 3,
+        name: data.name, legalName: data.legalName, industry: data.industry,
+        businessType: data.businessType, currency: data.currency, timezone: data.timezone,
+        country: data.country, website: data.website || null, phone: data.phone,
+        logoUrl: data.logoUrl || null, address: data.address, city: data.city,
+        state: data.state, postalCode: data.postalCode, gstNumber: data.gstNumber,
+        vatNumber: data.vatNumber, registrationNumber: data.registrationNumber, onboardingStep: 2,
       },
       create: {
-        id: DEMO_BUSINESS_ID,
-        name: data.name,
-        legalName: data.legalName,
-        industry: data.industry,
-        businessType: data.businessType,
-        currency: data.currency || "USD",
-        timezone: data.timezone || "UTC",
-        country: data.country,
-        website: data.website || null,
-        phone: data.phone,
-        logoUrl: data.logoUrl || null,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        postalCode: data.postalCode,
-        gstNumber: data.gstNumber,
-        vatNumber: data.vatNumber,
-        registrationNumber: data.registrationNumber,
-        onboardingStep: 3,
+        id: businessId, name: data.name, legalName: data.legalName, industry: data.industry,
+        businessType: data.businessType, currency: data.currency || "USD", timezone: data.timezone || "UTC",
+        country: data.country, website: data.website || null, phone: data.phone,
+        logoUrl: data.logoUrl || null, address: data.address, city: data.city,
+        state: data.state, postalCode: data.postalCode, gstNumber: data.gstNumber,
+        vatNumber: data.vatNumber, registrationNumber: data.registrationNumber, onboardingStep: 2,
       },
     });
-
-    await prisma.auditLog.create({
-      data: {
-        businessId: DEMO_BUSINESS_ID,
-        userId: DEMO_USER_ID,
-        action: "UPDATE",
-        entity: "BUSINESS",
-        entityId: business.id,
-        details: { step: "BUSINESS_IDENTITY", name: data.name },
-      },
-    });
-
-    const score = await recalculateSetupScore(DEMO_BUSINESS_ID);
-    await prisma.business.update({ where: { id: DEMO_BUSINESS_ID }, data: { setupScore: score } });
-
-    revalidatePath("/dashboard");
+    await prisma.auditLog.create({ data: { businessId, userId, action: "UPDATE", entity: "BUSINESS", entityId: business.id, details: { step: "BUSINESS_IDENTITY", name: data.name } } });
+    await updateScore(businessId);
     return { success: true };
-  } catch (error: any) {
-    console.error("[saveBusinessIdentityAction]", error);
-    return { success: false, error: error.message };
-  }
+  } catch (error: any) { return { success: false, error: error.message }; }
 }
 
-// ── Step 3: Locations ────────────────────────────────────────
+// ── Step 2: Locations ────────────────────────────────────────
 export async function saveLocationsAction(locations: LocationInput[]) {
   try {
-    // Upsert locations — replace all existing non-deleted for this business
-    await prisma.businessLocation.updateMany({
-      where: { businessId: DEMO_BUSINESS_ID, deletedAt: null },
-      data: { deletedAt: new Date() },
-    });
+    const { businessId, userId } = await getSession();
+    const existing = await LocationService.list(businessId);
+    const inputIds = locations.filter(l => l.id).map(l => l.id as string);
+    const toDelete = existing.filter((e: any) => !inputIds.includes(e.id));
 
-    if (locations.length > 0) {
-      await prisma.businessLocation.createMany({
-        data: locations.map((loc) => ({
-          businessId: DEMO_BUSINESS_ID,
-          name: loc.name,
-          type: loc.type,
-          address: loc.address,
-          city: loc.city,
-          state: loc.state,
-          country: loc.country,
-          postalCode: loc.postalCode,
-          phone: loc.phone,
-          isDefault: loc.isDefault,
-        })),
-      });
+    for (const loc of toDelete) await LocationService.delete(businessId, userId, loc.id);
+    for (const loc of locations) {
+      if (loc.id) await LocationService.update(businessId, userId, loc.id, loc);
+      else await LocationService.create(businessId, userId, loc as any);
     }
 
-    await prisma.business.update({
-      where: { id: DEMO_BUSINESS_ID },
-      data: { onboardingStep: 4 },
-    });
-
-    const score = await recalculateSetupScore(DEMO_BUSINESS_ID);
-    await prisma.business.update({ where: { id: DEMO_BUSINESS_ID }, data: { setupScore: score } });
-
-    revalidatePath("/dashboard");
+    await prisma.business.update({ where: { id: businessId }, data: { onboardingStep: 3 } });
+    await updateScore(businessId);
     return { success: true };
-  } catch (error: any) {
-    console.error("[saveLocationsAction]", error);
-    return { success: false, error: error.message };
-  }
+  } catch (error: any) { return { success: false, error: error.message }; }
 }
 
-// ── Step 4: Departments ──────────────────────────────────────
+// ── Step 3: Departments ──────────────────────────────────────
 export async function saveDepartmentsAction(departments: DepartmentInput[]) {
   try {
-    await prisma.department.updateMany({
-      where: { businessId: DEMO_BUSINESS_ID, deletedAt: null },
-      data: { deletedAt: new Date() },
-    });
+    const { businessId, userId } = await getSession();
+    const existing = await DepartmentService.list(businessId);
+    const inputIds = departments.filter(d => d.id).map(d => d.id as string);
+    const toDelete = existing.filter((e: any) => !inputIds.includes(e.id));
 
-    if (departments.length > 0) {
-      await prisma.department.createMany({
-        data: departments.map((d) => ({
-          businessId: DEMO_BUSINESS_ID,
-          name: d.name,
-        })),
-      });
+    for (const dept of toDelete) await DepartmentService.delete(businessId, userId, dept.id);
+    for (const dept of departments) {
+      if (dept.id) await DepartmentService.update(businessId, userId, dept.id, dept);
+      else await DepartmentService.create(businessId, userId, dept as any);
     }
 
-    await prisma.business.update({
-      where: { id: DEMO_BUSINESS_ID },
-      data: { onboardingStep: 5 },
-    });
-
-    const score = await recalculateSetupScore(DEMO_BUSINESS_ID);
-    await prisma.business.update({ where: { id: DEMO_BUSINESS_ID }, data: { setupScore: score } });
-
-    revalidatePath("/dashboard");
+    await prisma.business.update({ where: { id: businessId }, data: { onboardingStep: 4 } });
+    await updateScore(businessId);
     return { success: true };
-  } catch (error: any) {
-    console.error("[saveDepartmentsAction]", error);
-    return { success: false, error: error.message };
-  }
+  } catch (error: any) { return { success: false, error: error.message }; }
 }
 
-// ── Step 5: Employees ────────────────────────────────────────
+// ── Step 4: Employees ────────────────────────────────────────
 export async function saveEmployeesAction(employees: EmployeeInput[]) {
   try {
-    await prisma.employee.updateMany({
-      where: { businessId: DEMO_BUSINESS_ID, deletedAt: null },
-      data: { deletedAt: new Date() },
-    });
+    const { businessId, userId } = await getSession();
+    const existing = await EmployeeService.list(businessId);
+    const inputIds = employees.filter(e => e.id).map(e => e.id as string);
+    const toDelete = existing.filter((e: any) => !inputIds.includes(e.id));
 
-    if (employees.length > 0) {
-      await prisma.employee.createMany({
-        data: employees.map((e) => ({
-          businessId: DEMO_BUSINESS_ID,
-          name: e.name,
-          email: e.email,
-          jobTitle: e.jobTitle,
-          employmentType: e.employmentType,
-          status: "INVITED",
-        })),
-      });
+    for (const emp of toDelete) await EmployeeService.delete(businessId, userId, emp.id);
+    for (const emp of employees) {
+      if (emp.id) await EmployeeService.update(businessId, userId, emp.id, { ...emp, status: "ACTIVE" } as any);
+      else await EmployeeService.create(businessId, userId, { ...emp, status: "ACTIVE" } as any);
     }
 
-    await prisma.business.update({
-      where: { id: DEMO_BUSINESS_ID },
-      data: { onboardingStep: 6 },
-    });
-
-    const score = await recalculateSetupScore(DEMO_BUSINESS_ID);
-    await prisma.business.update({ where: { id: DEMO_BUSINESS_ID }, data: { setupScore: score } });
-
-    revalidatePath("/dashboard");
+    await prisma.business.update({ where: { id: businessId }, data: { onboardingStep: 5 } });
+    await updateScore(businessId);
     return { success: true };
-  } catch (error: any) {
-    console.error("[saveEmployeesAction]", error);
-    return { success: false, error: error.message };
-  }
+  } catch (error: any) { return { success: false, error: error.message }; }
 }
 
-// ── Step 6: Roles ────────────────────────────────────────────
-export async function saveRolesAction(roles: RoleInput[]) {
-  try {
-    await prisma.role.updateMany({
-      where: { businessId: DEMO_BUSINESS_ID, isSystemRole: false, deletedAt: null },
-      data: { deletedAt: new Date() },
-    });
-
-    if (roles.length > 0) {
-      await prisma.role.createMany({
-        data: roles.map((r) => ({
-          businessId: DEMO_BUSINESS_ID,
-          name: r.name,
-          description: r.description,
-          permissions: r.permissions,
-        })),
-      });
-    }
-
-    await prisma.business.update({
-      where: { id: DEMO_BUSINESS_ID },
-      data: { onboardingStep: 7 },
-    });
-
-    return { success: true };
-  } catch (error: any) {
-    console.error("[saveRolesAction]", error);
-    return { success: false, error: error.message };
-  }
-}
-
-// ── Step 8: Suppliers ────────────────────────────────────────
+// ── Step 5: Suppliers ────────────────────────────────────────
 export async function saveSuppliersAction(suppliers: SupplierInput[]) {
   try {
-    await prisma.supplier.updateMany({
-      where: { businessId: DEMO_BUSINESS_ID, deletedAt: null },
-      data: { deletedAt: new Date() },
-    });
+    const { businessId, userId } = await getSession();
+    const existing = await BusinessSupplierService.list(businessId);
+    const inputIds = suppliers.filter(s => s.id).map(s => s.id as string);
+    const toDelete = existing.filter((e: any) => !inputIds.includes(e.id));
 
-    if (suppliers.length > 0) {
-      await prisma.supplier.createMany({
-        data: suppliers.map((s) => ({
-          businessId: DEMO_BUSINESS_ID,
-          name: s.name,
-          contactPerson: s.contactPerson,
-          email: s.email || null,
-          phone: s.phone,
-          address: s.address,
-          city: s.city,
-          country: s.country,
-          gstNumber: s.gstNumber,
-          paymentTerms: s.paymentTerms,
-          leadTimeDays: s.leadTimeDays,
-          isPreferred: s.isPreferred,
-        })),
-      });
+    for (const sup of toDelete) await BusinessSupplierService.delete(businessId, userId, sup.id);
+    for (const sup of suppliers) {
+      if (sup.id) await BusinessSupplierService.update(businessId, userId, sup.id, sup as any);
+      else await BusinessSupplierService.create(businessId, userId, sup as any);
     }
 
-    await prisma.business.update({
-      where: { id: DEMO_BUSINESS_ID },
-      data: { onboardingStep: 9 },
-    });
-
-    const score = await recalculateSetupScore(DEMO_BUSINESS_ID);
-    await prisma.business.update({ where: { id: DEMO_BUSINESS_ID }, data: { setupScore: score } });
-
-    revalidatePath("/dashboard");
+    await prisma.business.update({ where: { id: businessId }, data: { onboardingStep: 6 } });
+    await updateScore(businessId);
     return { success: true };
-  } catch (error: any) {
-    console.error("[saveSuppliersAction]", error);
-    return { success: false, error: error.message };
-  }
+  } catch (error: any) { return { success: false, error: error.message }; }
 }
 
-// ── Step 9: Customers ────────────────────────────────────────
+// ── Step 6: Customers ────────────────────────────────────────
 export async function saveCustomersAction(customers: CustomerInput[]) {
   try {
-    await prisma.customer.updateMany({
-      where: { businessId: DEMO_BUSINESS_ID, deletedAt: null },
-      data: { deletedAt: new Date() },
-    });
+    const { businessId, userId } = await getSession();
+    const existing = await CustomerService.list(businessId);
+    const inputIds = customers.filter(c => c.id).map(c => c.id as string);
+    const toDelete = existing.filter((e: any) => !inputIds.includes(e.id));
 
-    if (customers.length > 0) {
-      await prisma.customer.createMany({
-        data: customers.map((c) => ({
-          businessId: DEMO_BUSINESS_ID,
-          name: c.name,
-          email: c.email || null,
-          phone: c.phone,
-          address: c.address,
-          city: c.city,
-          country: c.country,
-          category: c.category,
-          paymentTerms: c.paymentTerms,
-          creditLimit: c.creditLimit,
-          gstNumber: c.gstNumber,
-        })),
-      });
+    for (const cus of toDelete) await CustomerService.delete(businessId, userId, cus.id);
+    for (const cus of customers) {
+      if (cus.id) await CustomerService.update(businessId, userId, cus.id, cus as any);
+      else await CustomerService.create(businessId, userId, cus as any);
     }
 
-    await prisma.business.update({
-      where: { id: DEMO_BUSINESS_ID },
-      data: { onboardingStep: 10 },
-    });
-
-    const score = await recalculateSetupScore(DEMO_BUSINESS_ID);
-    await prisma.business.update({ where: { id: DEMO_BUSINESS_ID }, data: { setupScore: score } });
-
-    revalidatePath("/dashboard");
+    await prisma.business.update({ where: { id: businessId }, data: { onboardingStep: 7 } });
+    await updateScore(businessId);
     return { success: true };
-  } catch (error: any) {
-    console.error("[saveCustomersAction]", error);
-    return { success: false, error: error.message };
-  }
+  } catch (error: any) { return { success: false, error: error.message }; }
 }
 
-// ── Step 10: Finance Config ──────────────────────────────────
+// ── Step 7: Finance Config ──────────────────────────────────
 export async function saveFinanceConfigAction(data: FinanceConfigInput) {
   try {
+    const { businessId } = await getSession();
     await prisma.businessSettings.upsert({
-      where: { businessId: DEMO_BUSINESS_ID },
-      update: {
-        fiscalYearStart: data.fiscalYearStart,
-        accountingMethod: data.accountingMethod,
-        invoicePrefix: data.invoicePrefix,
-        defaultCurrency: data.defaultCurrency,
-        openingCash: data.openingCash,
-        openingBank: data.openingBank,
-        openingReceivables: data.openingReceivables,
-        openingPayables: data.openingPayables,
-      },
-      create: {
-        businessId: DEMO_BUSINESS_ID,
-        fiscalYearStart: data.fiscalYearStart,
-        accountingMethod: data.accountingMethod,
-        invoicePrefix: data.invoicePrefix,
-        defaultCurrency: data.defaultCurrency,
-        openingCash: data.openingCash,
-        openingBank: data.openingBank,
-        openingReceivables: data.openingReceivables,
-        openingPayables: data.openingPayables,
-      },
+      where: { businessId },
+      update: { fiscalYearStart: data.fiscalYearStart, accountingMethod: data.accountingMethod, invoicePrefix: data.invoicePrefix, defaultCurrency: data.defaultCurrency, openingCash: data.openingCash, openingBank: data.openingBank, openingReceivables: data.openingReceivables, openingPayables: data.openingPayables },
+      create: { businessId, fiscalYearStart: data.fiscalYearStart, accountingMethod: data.accountingMethod, invoicePrefix: data.invoicePrefix, defaultCurrency: data.defaultCurrency, openingCash: data.openingCash, openingBank: data.openingBank, openingReceivables: data.openingReceivables, openingPayables: data.openingPayables },
     });
-
-    // Save bank accounts
-    if (data.banks && data.banks.length > 0) {
-      await prisma.bankAccount.updateMany({
-        where: { businessId: DEMO_BUSINESS_ID, deletedAt: null },
-        data: { deletedAt: new Date() },
-      });
-      await prisma.bankAccount.createMany({
-        data: data.banks.map((b) => ({
-          businessId: DEMO_BUSINESS_ID,
-          name: b.name,
-          bankName: b.bankName,
-          accountNumber: b.accountNumber,
-          currency: b.currency,
-          openingBalance: b.openingBalance,
-          isDefault: b.isDefault,
-        })),
-      });
+    
+    // Create/update banks directly (no bank domain service yet, simple enough)
+    if (data.banks) {
+      await prisma.bankAccount.updateMany({ where: { businessId, deletedAt: null }, data: { deletedAt: new Date() } });
+      if (data.banks.length > 0) {
+        await prisma.bankAccount.createMany({ data: data.banks.map((b) => ({ businessId, name: b.name, bankName: b.bankName, accountNumber: b.accountNumber, currency: b.currency, openingBalance: b.openingBalance, isDefault: b.isDefault })) });
+      }
     }
-
-    await prisma.business.update({
-      where: { id: DEMO_BUSINESS_ID },
-      data: { onboardingStep: 11 },
-    });
-
-    const score = await recalculateSetupScore(DEMO_BUSINESS_ID);
-    await prisma.business.update({ where: { id: DEMO_BUSINESS_ID }, data: { setupScore: score } });
-
-    revalidatePath("/dashboard");
+    await prisma.business.update({ where: { id: businessId }, data: { onboardingStep: 8 } });
+    await updateScore(businessId);
     return { success: true };
-  } catch (error: any) {
-    console.error("[saveFinanceConfigAction]", error);
-    return { success: false, error: error.message };
-  }
+  } catch (error: any) { return { success: false, error: error.message }; }
 }
 
-// ── Step 11: Taxes ───────────────────────────────────────────
+// ── Step 8: Taxes ───────────────────────────────────────────
 export async function saveTaxesAction(taxes: TaxRuleInput[]) {
   try {
-    await prisma.taxConfiguration.updateMany({
-      where: { businessId: DEMO_BUSINESS_ID, deletedAt: null },
-      data: { deletedAt: new Date() },
-    });
-
+    const { businessId } = await getSession();
+    await prisma.taxConfiguration.updateMany({ where: { businessId, deletedAt: null }, data: { deletedAt: new Date() } });
     if (taxes.length > 0) {
-      await prisma.taxConfiguration.createMany({
-        data: taxes.map((t) => ({
-          businessId: DEMO_BUSINESS_ID,
-          taxType: t.taxType,
-          name: t.name,
-          rate: t.rate,
-          hsnCode: t.hsnCode,
-          region: t.region,
-          invoiceFormat: t.invoiceFormat,
-          isDefault: t.isDefault,
-        })),
+      await prisma.taxConfiguration.createMany({ data: taxes.map((t) => ({ businessId, taxType: t.taxType, name: t.name, rate: t.rate, hsnCode: t.hsnCode, region: t.region, invoiceFormat: t.invoiceFormat, isDefault: t.isDefault })) });
+    }
+    await prisma.business.update({ where: { id: businessId }, data: { onboardingStep: 9 } });
+    return { success: true };
+  } catch (error: any) { return { success: false, error: error.message }; }
+}
+
+// ── Step 9: AI Settings ─────────────────────────────────────
+export async function saveAISettingsAction(data: AISettingsInput) {
+  try {
+    const { businessId } = await getSession();
+    await prisma.aISettings.upsert({
+      where: { businessId },
+      update: { ...data },
+      create: { businessId, ...data },
+    });
+    await prisma.business.update({ where: { id: businessId }, data: { onboardingStep: 10 } });
+    await updateScore(businessId);
+    return { success: true };
+  } catch (error: any) { return { success: false, error: error.message }; }
+}
+
+// ── Step 10: Complete Onboarding ─────────────────────────────
+export async function completeOnboardingAction() {
+  try {
+    const { businessId, userId } = await getSession();
+    const business = await prisma.business.findUnique({ where: { id: businessId } });
+    
+    // 1. Generate default Chart of Accounts if none exist
+    const accountsCount = await prisma.ledgerAccount.count({ where: { businessId, deletedAt: null } });
+    if (accountsCount === 0) {
+      const coa = [
+        { code: "1000", name: "Cash", type: "ASSET", isSystemAccount: true },
+        { code: "1010", name: "Bank", type: "ASSET", isSystemAccount: true },
+        { code: "1200", name: "Accounts Receivable", type: "ASSET", isSystemAccount: true },
+        { code: "1400", name: "Inventory", type: "ASSET", isSystemAccount: true },
+        { code: "1500", name: "Fixed Assets", type: "ASSET", isSystemAccount: true },
+        { code: "2000", name: "Accounts Payable", type: "LIABILITY", isSystemAccount: true },
+        { code: "2200", name: "GST Payable", type: "LIABILITY", isSystemAccount: true },
+        { code: "2210", name: "VAT Payable", type: "LIABILITY", isSystemAccount: true },
+        { code: "2500", name: "Loans", type: "LIABILITY", isSystemAccount: true },
+        { code: "3000", name: "Owner Capital", type: "EQUITY", isSystemAccount: true },
+        { code: "3100", name: "Retained Earnings", type: "EQUITY", isSystemAccount: true },
+        { code: "4000", name: "Sales Revenue", type: "REVENUE", isSystemAccount: true },
+        { code: "4100", name: "Service Revenue", type: "REVENUE", isSystemAccount: true },
+        { code: "5000", name: "Cost of Goods Sold", type: "EXPENSE", isSystemAccount: true },
+        { code: "6000", name: "Salary Expense", type: "EXPENSE", isSystemAccount: true },
+        { code: "6100", name: "Rent Expense", type: "EXPENSE", isSystemAccount: true },
+        { code: "6200", name: "Utilities", type: "EXPENSE", isSystemAccount: true },
+        { code: "6300", name: "Marketing", type: "EXPENSE", isSystemAccount: true },
+        { code: "6400", name: "Travel", type: "EXPENSE", isSystemAccount: true },
+        { code: "6900", name: "Miscellaneous", type: "EXPENSE", isSystemAccount: true },
+      ];
+      await prisma.ledgerAccount.createMany({
+        data: coa.map(a => ({ businessId, ...a }))
       });
     }
 
-    await prisma.business.update({
-      where: { id: DEMO_BUSINESS_ID },
-      data: { onboardingStep: 12 },
+    // 2. Generate default Departments if missing
+    const deptsCount = await prisma.department.count({ where: { businessId, deletedAt: null } });
+    if (deptsCount === 0) {
+      await prisma.department.createMany({
+        data: ["Finance", "Inventory", "Sales", "Operations", "HR"].map(name => ({ businessId, name }))
+      });
+    }
+
+    // 3. Generate default Roles
+    const rolesCount = await prisma.role.count({ where: { businessId, deletedAt: null } });
+    if (rolesCount === 0) {
+      await prisma.role.createMany({
+        data: ["Owner", "Admin", "Finance Manager", "Inventory Manager", "Sales Manager", "HR Manager", "Employee"].map(name => ({
+          businessId, name, isSystemRole: true, permissions: []
+        }))
+      });
+    }
+
+    // 4. Generate Business Knowledge Base
+    const employeesCount = await prisma.employee.count({ where: { businessId, deletedAt: null } });
+    const suppliersCount = await prisma.supplier.count({ where: { businessId, deletedAt: null } });
+    const customersCount = await prisma.customer.count({ where: { businessId, deletedAt: null } });
+    const locationsCount = await prisma.businessLocation.count({ where: { businessId, deletedAt: null } });
+    
+    const kbContent = `Business Name: ${business?.name || 'N/A'}
+Industry: ${business?.industry || 'N/A'}
+Country: ${business?.country || 'N/A'}
+Currency: ${business?.currency || 'USD'}
+Employees: ${employeesCount}
+Departments: ${Math.max(deptsCount, 5)}
+Suppliers: ${suppliersCount}
+Customers: ${customersCount}
+Warehouses/Locations: ${locationsCount}`;
+
+    await prisma.businessKnowledgeBase.upsert({
+      where: { businessId },
+      update: { content: kbContent },
+      create: { businessId, content: kbContent }
     });
 
-    return { success: true };
-  } catch (error: any) {
-    console.error("[saveTaxesAction]", error);
-    return { success: false, error: error.message };
-  }
-}
-
-// ── Step 12: AI Settings ─────────────────────────────────────
-export async function saveAISettingsAction(data: AISettingsInput) {
-  try {
-    await prisma.aISettings.upsert({
-      where: { businessId: DEMO_BUSINESS_ID },
-      update: {
-        autonomyLevel: data.autonomyLevel,
-        riskLow: data.riskLow,
-        riskMedium: data.riskMedium,
-        riskHigh: data.riskHigh,
-        riskCritical: data.riskCritical,
-        notifyEmail: data.notifyEmail,
-        notifySlack: data.notifySlack,
-        notifyWhatsApp: data.notifyWhatsApp,
-        notifySms: data.notifySms,
-        dailyBriefTime: data.dailyBriefTime,
-        weeklyReport: data.weeklyReport,
-        monthlyReport: data.monthlyReport,
-        language: data.language,
-        workStart: data.workStart,
-        workEnd: data.workEnd,
-      },
-      create: {
-        businessId: DEMO_BUSINESS_ID,
-        autonomyLevel: data.autonomyLevel,
-        riskLow: data.riskLow,
-        riskMedium: data.riskMedium,
-        riskHigh: data.riskHigh,
-        riskCritical: data.riskCritical,
-        notifyEmail: data.notifyEmail,
-        notifySlack: data.notifySlack,
-        notifyWhatsApp: data.notifyWhatsApp,
-        notifySms: data.notifySms,
-        dailyBriefTime: data.dailyBriefTime,
-        weeklyReport: data.weeklyReport,
-        monthlyReport: data.monthlyReport,
-        language: data.language,
-        workStart: data.workStart,
-        workEnd: data.workEnd,
-      },
-    });
-
-    await prisma.business.update({
-      where: { id: DEMO_BUSINESS_ID },
-      data: { onboardingStep: 13, onboardingComplete: true },
-    });
-
-    const score = await recalculateSetupScore(DEMO_BUSINESS_ID);
-    await prisma.business.update({ where: { id: DEMO_BUSINESS_ID }, data: { setupScore: score } });
-
-    revalidatePath("/dashboard");
-    return { success: true };
-  } catch (error: any) {
-    console.error("[saveAISettingsAction]", error);
-    return { success: false, error: error.message };
-  }
-}
-
-// ── Complete Onboarding ──────────────────────────────────────
-export async function completeOnboardingAction() {
-  try {
-    const score = await recalculateSetupScore(DEMO_BUSINESS_ID);
-    await prisma.business.update({
-      where: { id: DEMO_BUSINESS_ID },
-      data: { onboardingComplete: true, onboardingStep: 15, setupScore: score },
-    });
-
-    await prisma.auditLog.create({
-      data: {
-        businessId: DEMO_BUSINESS_ID,
-        userId: DEMO_USER_ID,
-        action: "COMPLETE",
-        entity: "ONBOARDING",
-        entityId: DEMO_BUSINESS_ID,
-        details: { setupScore: score },
-      },
-    });
-
+    const score = await recalculateSetupScore(businessId);
+    await prisma.business.update({ where: { id: businessId }, data: { onboardingComplete: true, onboardingStep: 10, setupScore: score } });
+    await prisma.auditLog.create({ data: { businessId, userId, action: "COMPLETE", entity: "ONBOARDING", entityId: businessId, details: { setupScore: score } } });
+    
     revalidatePath("/dashboard");
     return { success: true, setupScore: score };
-  } catch (error: any) {
-    console.error("[completeOnboardingAction]", error);
-    return { success: false, error: error.message };
-  }
+  } catch (error: any) { return { success: false, error: error.message }; }
 }

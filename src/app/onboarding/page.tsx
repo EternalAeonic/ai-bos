@@ -3,26 +3,19 @@
 import { useOnboarding } from "@/context/OnboardingContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Save, HelpCircle } from "lucide-react";
-import { Step1Welcome } from "./components/Step1Welcome";
-import { Step2BusinessIdentity } from "./components/Step2BusinessIdentity";
-import { Step3Locations } from "./components/Step3Locations";
-import { Step4OrgStructure } from "./components/Step4OrgStructure";
-import { Step5Employees } from "./components/Step5Employees";
-import { Step6Roles } from "./components/Step6Roles";
-import { Step7Inventory } from "./components/Step7Inventory";
-import { Step8Suppliers } from "./components/Step8Suppliers";
-import { Step9Customers } from "./components/Step9Customers";
-import { Step10Finance } from "./components/Step10Finance";
-import { Step11Taxes } from "./components/Step11Taxes";
-import { Step12AIPreferences } from "./components/Step12AIPreferences";
-import { Step13Integrations } from "./components/Step13Integrations";
-import { Step14Review } from "./components/Step14Review";
-import { Step15Success } from "./components/Step15Success";
+import { Save, HelpCircle, Loader2, ArrowRight } from "lucide-react";
+import { Step1BusinessInfo } from "./components/Step1BusinessInfo";
+import { Step2Locations } from "./components/Step2Locations";
+import { Step3Departments } from "./components/Step3Departments";
+import { Step4Employees } from "./components/Step4Employees";
+import { Step5Suppliers } from "./components/Step5Suppliers";
+import { Step6Customers } from "./components/Step6Customers";
+import { Step7Finance } from "./components/Step7Finance";
+import { Step8Tax } from "./components/Step8Tax";
+import { Step9AIConfig } from "./components/Step9AIConfig";
+import { Step10Review } from "./components/Step10Review";
 
-import { Loader2 } from "lucide-react";
-
-const TOTAL_STEPS = 15;
+const TOTAL_STEPS = 10;
 
 export default function OnboardingPage() {
   const { step, nextStep, prevStep, saving } = useOnboarding();
@@ -31,31 +24,31 @@ export default function OnboardingPage() {
 
   const renderStep = () => {
     switch (step) {
-      case 1: return <Step1Welcome />;
-      case 2: return <Step2BusinessIdentity />;
-      case 3: return <Step3Locations />;
-      case 4: return <Step4OrgStructure />;
-      case 5: return <Step5Employees />;
-      case 6: return <Step6Roles />;
-      case 7: return <Step7Inventory />;
-      case 8: return <Step8Suppliers />;
-      case 9: return <Step9Customers />;
-      case 10: return <Step10Finance />;
-      case 11: return <Step11Taxes />;
-      case 12: return <Step12AIPreferences />;
-      case 13: return <Step13Integrations />;
-      case 14: return <Step14Review />;
-      case 15: return <Step15Success />;
-      default: return <div className="text-center py-20">Step {step} Coming Soon</div>;
+      case 1: return <Step1BusinessInfo />;
+      case 2: return <Step2Locations />;
+      case 3: return <Step3Departments />;
+      case 4: return <Step4Employees />;
+      case 5: return <Step5Suppliers />;
+      case 6: return <Step6Customers />;
+      case 7: return <Step7Finance />;
+      case 8: return <Step8Tax />;
+      case 9: return <Step9AIConfig />;
+      case 10: return <Step10Review />;
+      default: return <div className="text-center py-20 text-white">Step {step} Not Found</div>;
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-[#0B0F1A] text-white">
       {/* Top Nav */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#EAEAEA]">
+      <header className="sticky top-0 z-50 bg-[#0B0F1A]/80 backdrop-blur-md border-b border-white/[0.06]">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="font-bold text-lg tracking-tight">AI-BOS</div>
+          <div className="font-bold text-lg tracking-tight flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00D9C0] to-[#009988] flex items-center justify-center text-white">
+              AI
+            </div>
+            AI-BOS Setup
+          </div>
           
           <div className="flex items-center gap-4">
             {saving && (
@@ -64,13 +57,13 @@ export default function OnboardingPage() {
                 Saving…
               </div>
             )}
-            <Button variant="ghost" size="icon" className="text-[#8A8F98] hover:text-[#141B41]">
+            <Button variant="ghost" size="icon" className="text-white/40 hover:text-white">
               <HelpCircle className="w-4 h-4" />
             </Button>
           </div>
         </div>
         {/* Progress Bar */}
-        <div className="h-0.5 w-full bg-[#F7F8F9]">
+        <div className="h-0.5 w-full bg-white/[0.04]">
           <motion.div 
             className="h-full bg-[#00D9C0]"
             initial={{ width: 0 }}
@@ -82,7 +75,7 @@ export default function OnboardingPage() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-12 pb-32">
-        <div className="mb-8 text-sm text-[#8A8F98] font-medium">
+        <div className="mb-8 text-sm text-white/40 font-medium uppercase tracking-wider">
           Step {step} of {TOTAL_STEPS}
         </div>
         
@@ -100,25 +93,36 @@ export default function OnboardingPage() {
       </main>
 
       {/* Bottom Sticky Action Bar */}
-      {step !== 1 && step !== 15 && (
-        <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#EAEAEA] shadow-[0_-4px_24px_rgba(0,0,0,0.02)] z-50">
-          <div className="max-w-4xl mx-auto px-6 h-20 flex items-center justify-between">
-            <Button variant="ghost" onClick={prevStep} className="text-[#8A8F98]">
-              Back
-            </Button>
-            
-            <div className="text-xs text-[#8A8F98]">
-              Estimated completion: {15 - step} mins remaining
-            </div>
-
-            <Button onClick={nextStep} disabled={saving} className="bg-[#141B41] hover:bg-[#00D9C0] text-white px-8 transition-colors disabled:opacity-60">
-              {saving ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</>
-              ) : step === 14 ? "Finish Setup" : "Continue"}
-            </Button>
+      <footer className="fixed bottom-0 left-0 right-0 bg-[#0B0F1A] border-t border-white/[0.06] shadow-[0_-4px_24px_rgba(0,0,0,0.2)] z-50">
+        <div className="max-w-4xl mx-auto px-6 h-20 flex items-center justify-between">
+          <Button 
+            variant="ghost" 
+            onClick={prevStep} 
+            disabled={step === 1 || saving}
+            className="text-white/40 hover:text-white hover:bg-white/[0.04]"
+          >
+            Back
+          </Button>
+          
+          <div className="text-xs text-white/40 hidden sm:block">
+            Estimated completion: {Math.max(1, (10 - step) * 2)} mins remaining
           </div>
-        </footer>
-      )}
+
+          <Button 
+            onClick={nextStep} 
+            disabled={saving} 
+            className="bg-[#00D9C0] hover:bg-[#00D9C0]/90 text-[#0B0F1A] font-medium px-8 transition-colors disabled:opacity-60 rounded-lg flex items-center gap-2"
+          >
+            {saving ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</>
+            ) : step === 10 ? (
+              "Finish Setup"
+            ) : (
+              <><ArrowRight className="w-4 h-4" />Continue</>
+            )}
+          </Button>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -7,7 +7,6 @@ import {
   saveLocationsAction,
   saveDepartmentsAction,
   saveEmployeesAction,
-  saveRolesAction,
   saveSuppliersAction,
   saveCustomersAction,
   saveFinanceConfigAction,
@@ -19,7 +18,7 @@ import {
 // ─── Types ───────────────────────────────────────────────────
 
 export interface OnboardingData {
-  // Step 2
+  // Step 1: Business Info
   businessName: string;
   legalName: string;
   industry: string;
@@ -37,45 +36,52 @@ export interface OnboardingData {
   gstNumber: string;
   vatNumber: string;
   registrationNumber: string;
-  // Extra fields used by existing step components
   companySize?: string;
   email?: string;
-  // Step 3
+
+  // Step 2: Locations
   locations: any[];
-  // Step 4
+
+  // Step 3: Departments
   departments: any[];
-  // Step 5
+
+  // Step 4: Employees
   employees: any[];
-  // Step 6
-  roles: any[];
-  // Step 7
-  inventory: any[];
-  // Step 8
+
+  // Step 5: Suppliers
   suppliers: any[];
-  // Step 9
+
+  // Step 6: Customers
   customers: any[];
-  // Step 10
-  finance: any;
-  // Step 11
-  taxes: any;
-  // Step 12
-  aiPreferences: {
-    autonomy: string;
-    approvalThreshold: string;
-    notifyEmail: boolean;
-    notifySlack: boolean;
-    notifyWhatsApp: boolean;
-    notifySms: boolean;
+
+  // Step 7: Finance
+  finance: {
+    openingCash: string;
+    bankBalance: string;
+    fiscalYearStart: string;
+    invoicePrefix: string;
+    currency: string;
+    accountingMethod: string;
   };
-  // Step 13
-  integrations: string[];
+
+  // Step 8: Tax
+  taxes: { rules: any[]; invoiceFormat: string };
+
+  // Step 9: AI Config
+  aiConfig: {
+    assistantName: string;
+    language: string;
+    notificationEmail: string;
+    approvalLevel: string;
+    autoSuggestions: boolean;
+  };
 }
 
 interface OnboardingContextType {
   step: number;
   data: OnboardingData;
   saving: boolean;
-  setStep: (step: number) => void;
+  setStep: (step: number | ((s: number) => number)) => void;
   nextStep: () => Promise<void>;
   prevStep: () => void;
   updateData: (updates: Partial<OnboardingData>) => void;
@@ -106,27 +112,24 @@ const defaultData: OnboardingData = {
   locations: [],
   departments: [],
   employees: [],
-  roles: [],
-  inventory: [],
   suppliers: [],
   customers: [],
   finance: {
     openingCash: "",
     bankBalance: "",
-    receivables: "",
-    payables: "",
-    method: "Accrual",
+    fiscalYearStart: "01-01",
+    invoicePrefix: "INV",
+    currency: "USD",
+    accountingMethod: "Accrual",
   },
   taxes: { rules: [], invoiceFormat: "INV-[YYYY]-[0000]" },
-  aiPreferences: {
-    autonomy: "Balanced",
-    approvalThreshold: "Only High Risk",
-    notifyEmail: true,
-    notifySlack: false,
-    notifyWhatsApp: false,
-    notifySms: false,
+  aiConfig: {
+    assistantName: "AI-BOS",
+    language: "en",
+    notificationEmail: "",
+    approvalLevel: "BALANCED",
+    autoSuggestions: true,
   },
-  integrations: [],
 };
 
 // ─── Context ─────────────────────────────────────────────────
@@ -142,14 +145,13 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setData((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  // ── Persist current step to PostgreSQL ───────────────────
   const persistStep = useCallback(async (currentStep: number): Promise<boolean> => {
     try {
       setSaving(true);
       let result: { success: boolean; error?: string } = { success: true };
 
       switch (currentStep) {
-        case 2:
+        case 1:
           result = await saveBusinessIdentityAction({
             name: data.businessName,
             legalName: data.legalName || undefined,
@@ -171,7 +173,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           });
           break;
 
-        case 3:
+        case 2:
           if (data.locations.length > 0) {
             result = await saveLocationsAction(
               data.locations.map((l: any) => ({
@@ -189,7 +191,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           }
           break;
 
-        case 4:
+        case 3:
           if (data.departments.length > 0) {
             result = await saveDepartmentsAction(
               data.departments.map((d: any) => ({ name: d.name || d }))
@@ -197,7 +199,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           }
           break;
 
-        case 5:
+        case 4:
           if (data.employees.length > 0) {
             result = await saveEmployeesAction(
               data.employees.map((e: any) => ({
@@ -210,19 +212,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           }
           break;
 
-        case 6:
-          if (data.roles.length > 0) {
-            result = await saveRolesAction(
-              data.roles.map((r: any) => ({
-                name: r.name || r,
-                description: r.description,
-                permissions: r.permissions || [],
-              }))
-            );
-          }
-          break;
-
-        case 8:
+        case 5:
           if (data.suppliers.length > 0) {
             result = await saveSuppliersAction(
               data.suppliers.map((s: any) => ({
@@ -242,7 +232,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           }
           break;
 
-        case 9:
+        case 6:
           if (data.customers.length > 0) {
             result = await saveCustomersAction(
               data.customers.map((c: any) => ({
@@ -261,20 +251,18 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           }
           break;
 
-        case 10:
+        case 7:
           result = await saveFinanceConfigAction({
-            fiscalYearStart: "01-01",
-            accountingMethod: data.finance.method === "Cash" ? "CASH" : "ACCRUAL",
-            invoicePrefix: "INV",
-            defaultCurrency: data.currency || "USD",
+            fiscalYearStart: data.finance.fiscalYearStart || "01-01",
+            accountingMethod: data.finance.accountingMethod === "Cash" ? "CASH" : "ACCRUAL",
+            invoicePrefix: data.finance.invoicePrefix || "INV",
+            defaultCurrency: data.finance.currency || "USD",
             openingCash: parseFloat(data.finance.openingCash) || undefined,
             openingBank: parseFloat(data.finance.bankBalance) || undefined,
-            openingReceivables: parseFloat(data.finance.receivables) || undefined,
-            openingPayables: parseFloat(data.finance.payables) || undefined,
           });
           break;
 
-        case 11:
+        case 8:
           if (data.taxes.rules && data.taxes.rules.length > 0) {
             result = await saveTaxesAction(
               data.taxes.rules.map((t: any) => ({
@@ -289,33 +277,29 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           }
           break;
 
-        case 12:
+        case 9:
           result = await saveAISettingsAction({
-            autonomyLevel:
-              data.aiPreferences.autonomy === "Manual"
-                ? "MANUAL"
-                : data.aiPreferences.autonomy === "Autonomous"
-                ? "AUTONOMOUS"
-                : "BALANCED",
+            assistantName: data.aiConfig.assistantName || "AI-BOS",
+            automaticSuggestions: data.aiConfig.autoSuggestions,
+            autonomyLevel: data.aiConfig.approvalLevel === "MANUAL" ? "MANUAL" : (data.aiConfig.approvalLevel === "AUTONOMOUS" ? "AUTONOMOUS" : "BALANCED"),
             riskLow: "AUTO",
             riskMedium: "APPROVE",
             riskHigh: "OWNER",
             riskCritical: "OWNER_MANAGER",
-            notifyEmail: data.aiPreferences.notifyEmail !== false,
-            notifySlack: data.aiPreferences.notifySlack || false,
-            notifyWhatsApp: data.aiPreferences.notifyWhatsApp || false,
-            notifySms: data.aiPreferences.notifySms || false,
+            notifyEmail: data.aiConfig.notificationEmail !== "",
+            notifySlack: false,
+            notifyWhatsApp: false,
+            notifySms: false,
             dailyBriefTime: "09:00",
             weeklyReport: true,
             monthlyReport: true,
-            language: "en",
+            language: data.aiConfig.language || "en",
             workStart: "09:00",
             workEnd: "18:00",
           });
           break;
 
-        case 14:
-          // Review step — trigger final completion
+        case 10:
           result = await completeOnboardingAction();
           if (result.success) {
             toast.success("Business setup complete! 🎉", {
@@ -330,7 +314,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         return false;
       }
 
-      if (currentStep !== 14 && currentStep >= 2) {
+      if (currentStep !== 10 && currentStep >= 1) {
         toast.success(`Step ${currentStep} saved`, {
           description: "Your data is safely stored in the cloud.",
           duration: 2000,
@@ -350,7 +334,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const nextStep = useCallback(async () => {
     const saved = await persistStep(step);
     if (saved) {
-      setStep((s) => Math.min(s + 1, 15));
+      setStep((s) => Math.min(s + 1, 10));
     }
   }, [step, persistStep]);
 

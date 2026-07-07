@@ -63,6 +63,10 @@ model Business {
   taxConfigurations  TaxConfiguration[]
   businessSettings   BusinessSettings?
   aiSettings         AISettings?
+  knowledgeBase      BusinessKnowledgeBase?
+  aiInteractions     AIInteraction[]
+  aiRecommendations  AIRecommendation[]
+  workflowExecutions WorkflowExecution[]
 }
 
 // ─────────────────────────────────────────────────────────
@@ -425,6 +429,11 @@ model AISettings {
   riskMedium     String   @default("APPROVE")
   riskHigh       String   @default("OWNER")
   riskCritical   String   @default("OWNER_MANAGER")
+  
+  // Deterministic Risk Thresholds
+  riskThresholdLow    Decimal  @db.Decimal(14, 2) @default(1000)
+  riskThresholdMedium Decimal  @db.Decimal(14, 2) @default(10000)
+  riskThresholdHigh   Decimal  @db.Decimal(14, 2) @default(50000)
   // Notifications
   notifyEmail    Boolean  @default(true)
   notifySlack    Boolean  @default(false)
@@ -435,7 +444,9 @@ model AISettings {
   weeklyReport   Boolean  @default(true)
   monthlyReport  Boolean  @default(true)
   // Preferences
+  assistantName  String   @default("AI CEO")
   language       String   @default("en")
+  automaticSuggestions Boolean @default(true)
   workStart      String   @default("09:00")
   workEnd        String   @default("18:00")
   createdAt      DateTime @default(now())
@@ -443,20 +454,38 @@ model AISettings {
 }
 
 // ─────────────────────────────────────────────────────────
+// KNOWLEDGE BASE
+// ─────────────────────────────────────────────────────────
+model BusinessKnowledgeBase {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────
 // FINANCE LEDGER (unchanged)
 // ─────────────────────────────────────────────────────────
 
 model AuditLog {
-  id         String    @id @default(cuid())
-  businessId String
-  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  userId     String?
-  actorType  String    @default("USER")
-  action     String
-  entity     String
-  entityId   String
-  details    Json
-  createdAt  DateTime  @default(now())
+  id               String    @id @default(cuid())
+  businessId       String
+  business         Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId           String?
+  actorType        String    @default("USER") // "USER" or "AI"
+  action           String
+  entity           String
+  entityId         String
+  details          Json
+  
+  // Traceability
+  executionId      String?
+  workflowName     String?
+  recommendationId String?
+  
+  createdAt        DateTime  @default(now())
 
   @@index([businessId])
 }
@@ -511,4 +540,72 @@ model JournalLine {
   @@index([businessId])
   @@index([journalEntryId])
   @@index([accountId])
+}
+
+// ─────────────────────────────────────────────────────────
+// AI ENGINE
+// ─────────────────────────────────────────────────────────
+
+model AIInteraction {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId     String?
+  role       String   // "user", "assistant", "system", "tool"
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([businessId])
+}
+
+model AIRecommendation {
+  id             String   @id @default(cuid())
+  businessId     String
+  business       Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title          String
+  summary        String   @db.Text
+  confidence     Int      // 0-100
+  llmRisk        String   // LOW, MEDIUM, HIGH, CRITICAL
+  calculatedRisk String   // LOW, MEDIUM, HIGH, CRITICAL
+  finalRisk      String   // LOW, MEDIUM, HIGH, CRITICAL
+  executionId    String?
+  sourceModule   String   @default("CORE") // Source Module (e.g. INVENTORY, FINANCE, HR)
+  
+  // Explanation Fields
+  why            String   @db.Text @default("")
+  expectedResult String   @db.Text @default("")
+  businessImpact String   @db.Text @default("")
+  estimatedCost  Decimal? @db.Decimal(14, 2)
+  estimatedSavings Decimal? @db.Decimal(14, 2)
+  
+  status         String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  executionStatus String  @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, FAILED
+  requiresApproval Boolean @default(true)
+  
+  actionPayload  Json     // Tool execution payload
+  evidence       Json     // Data supporting decision
+  alternatives   Json?    
+  affectedModules Json    @default("[]")
+  
+  createdAt      DateTime @default(now())
+  resolvedAt     DateTime?
+  resolvedBy     String?
+
+  @@index([businessId])
+}
+
+model WorkflowExecution {
+  id               String   @id @default(cuid())
+  businessId       String
+  business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  workflowName     String
+  status           String   @default("RUNNING") // RUNNING, COMPLETED, FAILED
+  startedAt        DateTime @default(now())
+  completedAt      DateTime?
+  triggerType      String   // AI, MANUAL
+  recommendationId String?
+  context          Json
+  logs             Json
+  
+  @@index([businessId])
 }
