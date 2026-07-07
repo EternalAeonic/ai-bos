@@ -45,7 +45,8 @@ export default async function SuppliersPage() {
                 <tr>
                   <th className="px-6 py-4 font-medium">Supplier Name</th>
                   <th className="px-6 py-4 font-medium">Contact</th>
-                  <th className="px-6 py-4 font-medium">Rating</th>
+                  <th className="px-6 py-4 font-medium">Lead Time</th>
+                  <th className="px-6 py-4 font-medium">Status</th>
                   <th className="px-6 py-4 font-medium text-right">Actions</th>
                 </tr>
               </thead>
@@ -67,13 +68,17 @@ export default async function SuppliersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      {supplier.rating ? (
-                        <div className="flex items-center gap-1">
-                          <span className="font-bold text-amber-400">{supplier.rating}</span>
-                          <span className="text-[10px] text-white/40">/ 5.0</span>
-                        </div>
+                      {supplier.leadTimeDays ? (
+                        <span className="text-white/70">{supplier.leadTimeDays} days</span>
                       ) : (
-                        <span className="text-white/30">Unrated</span>
+                        <span className="text-white/30">Unknown</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {supplier.isPreferred ? (
+                        <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-[#00D9C0]/10 text-[#00D9C0]">Preferred</span>
+                      ) : (
+                        <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-white/10 text-white/50">Standard</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
