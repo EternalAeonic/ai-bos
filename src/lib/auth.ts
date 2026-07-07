@@ -11,6 +11,7 @@ function getBaseURL() {
 
 export const auth = betterAuth({
   baseURL: getBaseURL(),
+  trustedOrigins: ["https://ai-bos-eta.vercel.app", "http://localhost:3000"],
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),

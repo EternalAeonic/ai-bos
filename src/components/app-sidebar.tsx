@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Bot,
   Package,
+  Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -38,6 +39,11 @@ const navItems = [
     label: "Inventory",
     href: "/dashboard/inventory",
     icon: Package,
+  },
+  {
+    label: "Finance",
+    href: "/dashboard/finance",
+    icon: Banknote,
   },
   {
     label: "Settings",
