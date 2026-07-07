@@ -4,9 +4,10 @@ import ProductForm from "./product-form";
 const DEMO_BUSINESS_ID = "demo-business-123";
 
 export default async function NewProductPage() {
-  const [categories, suppliers] = await Promise.all([
-    prisma.category.findMany({ where: { businessId: DEMO_BUSINESS_ID, deletedAt: null } }),
-    prisma.supplier.findMany({ where: { businessId: DEMO_BUSINESS_ID, deletedAt: null } })
+  const [categories, suppliers, warehouses] = await Promise.all([
+    prisma.category.findMany({ where: { businessId: DEMO_BUSINESS_ID, deletedAt: null }, orderBy: { name: "asc" } }),
+    prisma.supplier.findMany({ where: { businessId: DEMO_BUSINESS_ID, deletedAt: null }, orderBy: { name: "asc" } }),
+    prisma.warehouse.findMany({ where: { businessId: DEMO_BUSINESS_ID, deletedAt: null }, orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -20,6 +21,7 @@ export default async function NewProductPage() {
           businessId={DEMO_BUSINESS_ID}
           categories={categories}
           suppliers={suppliers}
+          warehouses={warehouses}
         />
       </div>
     </div>

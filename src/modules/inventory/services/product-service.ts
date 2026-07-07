@@ -9,6 +9,8 @@ export class ProductService {
     data: {
       sku: string;
       name: string;
+      barcode?: string;
+      description?: string;
       categoryId?: string;
       supplierId?: string;
       unit?: string;
@@ -18,12 +20,13 @@ export class ProductService {
     }
   ) {
     return await withBusinessContext(businessId, async (tx) => {
-      // Create product
       const product = await tx.product.create({
         data: {
           businessId,
           sku: data.sku,
           name: data.name,
+          barcode: data.barcode,
+          description: data.description,
           categoryId: data.categoryId,
           supplierId: data.supplierId,
           unit: data.unit ?? "pcs",
@@ -33,7 +36,6 @@ export class ProductService {
         },
       });
 
-      // Audit log
       await AuditService.log(tx, {
         businessId,
         userId,
@@ -53,6 +55,8 @@ export class ProductService {
     productId: string,
     data: Partial<{
       name: string;
+      barcode: string;
+      description: string;
       categoryId: string;
       supplierId: string;
       unit: string;
@@ -62,12 +66,17 @@ export class ProductService {
     }>
   ) {
     return await withBusinessContext(businessId, async (tx) => {
+      // Ownership check — only update if product belongs to this business
+      const existing = await tx.product.findUnique({
+        where: { id: productId, businessId, deletedAt: null },
+      });
+      if (!existing) throw new Error("Product not found or access denied.");
+
       const product = await tx.product.update({
         where: { id: productId },
         data,
       });
 
-      // Audit log
       await AuditService.log(tx, {
         businessId,
         userId,
@@ -81,9 +90,13 @@ export class ProductService {
     });
   }
 
-  static async deleteProduct(businessId: string, userId: string, productId: string) {
+  static async archiveProduct(businessId: string, userId: string, productId: string) {
     return await withBusinessContext(businessId, async (tx) => {
-      // Soft delete
+      const existing = await tx.product.findUnique({
+        where: { id: productId, businessId, deletedAt: null },
+      });
+      if (!existing) throw new Error("Product not found or access denied.");
+
       const product = await tx.product.update({
         where: { id: productId },
         data: { deletedAt: new Date() },
@@ -95,17 +108,22 @@ export class ProductService {
         action: "DELETE",
         entity: "PRODUCT",
         entityId: product.id,
-        details: { softDelete: true },
+        details: { softDelete: true, name: product.name },
       });
 
       return product;
     });
   }
 
+  // Keep deleteProduct as alias for backward compat
+  static async deleteProduct(businessId: string, userId: string, productId: string) {
+    return ProductService.archiveProduct(businessId, userId, productId);
+  }
+
   static async getProduct(businessId: string, productId: string) {
     return await withBusinessContext(businessId, async (tx) => {
       return await tx.product.findUnique({
-        where: { id: productId, deletedAt: null },
+        where: { id: productId, businessId, deletedAt: null }, // businessId guard added
         include: { category: true, supplier: true },
       });
     });
@@ -114,7 +132,7 @@ export class ProductService {
   static async listProducts(businessId: string) {
     return await withBusinessContext(businessId, async (tx) => {
       return await tx.product.findMany({
-        where: { deletedAt: null },
+        where: { businessId, deletedAt: null }, // businessId guard added
         include: { category: true, supplier: true },
         orderBy: { createdAt: "desc" },
       });

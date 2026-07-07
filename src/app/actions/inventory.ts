@@ -95,3 +95,19 @@ export async function recordMovementAction(businessId: string, userId: string, d
   }
   return result;
 }
+
+export async function transferStockAction(businessId: string, userId: string, data: {
+  productId: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  quantity: number;
+  notes?: string;
+}) {
+  await InventoryMovementService.transferStock(businessId, userId, data);
+  revalidatePath("/dashboard/inventory/movements");
+  revalidatePath("/dashboard/inventory/products");
+  revalidatePath("/dashboard/inventory");
+  if (data.productId) {
+    revalidatePath(`/dashboard/inventory/products/${data.productId}`);
+  }
+}

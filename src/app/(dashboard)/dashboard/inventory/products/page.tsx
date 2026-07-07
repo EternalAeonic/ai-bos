@@ -81,22 +81,30 @@ export default async function ProductsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-white/70">{item.product.categoryId ? 'Categorized' : 'Uncategorized'}</span>
+                      <span className="text-white/70">{(item.product as any).category?.name || <span className="text-white/30">Uncategorized</span>}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className={`font-bold ${item.isLowStock ? 'text-destructive' : 'text-white'}`}>
+                        <span className={`font-bold ${
+                          (item as any).isOutOfStock ? 'text-red-400' : 
+                          item.isLowStock ? 'text-amber-400' : 'text-white'
+                        }`}>
                           {item.currentStock} {item.product.unit}
                         </span>
-                        {item.isLowStock && <span className="text-[10px] text-destructive">Low Stock</span>}
+                        {(item as any).isOutOfStock && <span className="text-[10px] text-red-400">Out of Stock</span>}
+                        {!((item as any).isOutOfStock) && item.isLowStock && <span className="text-[10px] text-amber-400">Low Stock</span>}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-white/90 font-medium">
-                      ${Number(item.product.sellPrice).toFixed(2)}
+                      ₹{Number(item.product.sellPrice).toFixed(2)}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${item.isLowStock ? 'bg-destructive/10 text-destructive' : 'bg-[#00D9C0]/10 text-[#00D9C0]'}`}>
-                        {item.isLowStock ? 'Reorder' : 'In Stock'}
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${
+                        (item as any).isOutOfStock ? 'bg-red-500/10 text-red-400' :
+                        item.isLowStock ? 'bg-amber-500/10 text-amber-400' : 
+                        'bg-[#00D9C0]/10 text-[#00D9C0]'
+                      }`}>
+                        {(item as any).isOutOfStock ? 'Out of Stock' : item.isLowStock ? 'Reorder' : 'In Stock'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">

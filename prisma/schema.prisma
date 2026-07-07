@@ -288,6 +288,8 @@ model Product {
   business     Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
   sku          String
   name         String
+  barcode      String?
+  description  String?
   categoryId   String?
   category     Category?           @relation(fields: [categoryId], references: [id])
   supplierId   String?
@@ -317,6 +319,7 @@ model InventoryMovement {
   quantity      Int
   referenceType String?
   referenceId   String?
+  notes         String?
   createdBy     String
   createdAt     DateTime  @default(now())
 
