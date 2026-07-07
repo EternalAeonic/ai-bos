@@ -1,155 +1,124 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  Settings,
-  Building2,
-  LogOut,
-  ChevronRight,
-  Bot,
-  Package,
-  Banknote,
+  LayoutDashboard, Settings, Bot, Package, Banknote,
+  Building2, Users, ShoppingCart, ChevronRight, Sparkles,
+  LogOut, Bell, Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 
-const navItems = [
+const navGroups = [
   {
-    label: "Overview",
-    href: "/dashboard",
-    icon: LayoutDashboard,
+    label: "Core",
+    items: [
+      { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Inventory", href: "/dashboard/inventory", icon: Package },
+      { label: "Finance", href: "/dashboard/finance", icon: Banknote },
+    ],
   },
   {
-    label: "Inventory",
-    href: "/dashboard/inventory",
-    icon: Package,
+    label: "Intelligence",
+    items: [
+      { label: "AI CEO", href: "#", icon: Bot, soon: true },
+      { label: "Customers", href: "#", icon: Users, soon: true },
+      { label: "Purchases", href: "#", icon: ShoppingCart, soon: true },
+    ],
   },
   {
-    label: "Finance",
-    href: "/dashboard/finance",
-    icon: Banknote,
+    label: "Business",
+    items: [
+      { label: "Business Profile", href: "#", icon: Building2, soon: true },
+      { label: "Settings", href: "/dashboard/settings", icon: Settings },
+    ],
   },
-  {
-    label: "Settings",
-    href: "/dashboard/settings",
-    icon: Settings,
-  },
-];
-
-const comingSoon = [
-  { label: "AI CEO", icon: Bot },
-  { label: "Business Profile", icon: Building2 },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  async function handleSignOut() {
-    await authClient.signOut();
-    router.push("/login");
-  }
-
   return (
-    <Sidebar variant="inset" className="border-sidebar-border">
-      <SidebarHeader className="px-4 py-5">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/15 border border-primary/25">
-            <span className="text-primary font-bold text-xs">AI</span>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-sidebar-foreground leading-tight">AI-BOS</p>
-            <p className="text-xs text-muted-foreground leading-tight">Business OS</p>
-          </div>
+    <aside className="w-[240px] h-screen flex flex-col bg-[#0B0F1A] border-r border-white/[0.06] shrink-0">
+      {/* Brand */}
+      <div className="px-5 py-5 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00D9C0] to-[#141B41] flex items-center justify-center shadow-lg">
+          <Bot className="w-4 h-4 text-white" />
         </div>
-      </SidebarHeader>
+        <div>
+          <p className="text-sm font-bold text-white tracking-tight">AI-BOS</p>
+          <p className="text-[10px] text-white/40 font-medium">Business OS</p>
+        </div>
+      </div>
 
-      <Separator className="bg-sidebar-border" />
+      <div className="h-px bg-white/[0.06] mx-5" />
 
-      <SidebarContent className="px-2 py-3">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider px-2 mb-1">
-            Workspace
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    isActive={isActive}
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+        {navGroups.map((group) => (
+          <div key={group.label}>
+            <p className="text-[10px] font-semibold text-white/25 uppercase tracking-widest px-3 mb-2">
+              {group.label}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
                     className={cn(
-                      "w-full justify-start gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
+                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 group",
+                      item.soon && "pointer-events-none opacity-40",
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                        ? "bg-[#00D9C0]/10 text-[#00D9C0]"
+                        : "text-white/50 hover:text-white hover:bg-white/[0.05]"
                     )}
                   >
-                    <Link href={item.href} className="flex items-center gap-3 w-full">
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span>{item.label}</span>
-                      {isActive && <ChevronRight className="ml-auto h-3 w-3 opacity-60" />}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
+                    <item.icon className={cn("w-4 h-4 shrink-0", isActive ? "text-[#00D9C0]" : "")} />
+                    <span className="flex-1">{item.label}</span>
+                    {item.soon && (
+                      <span className="text-[9px] font-bold bg-white/10 text-white/40 px-1.5 py-0.5 rounded-full">
+                        SOON
+                      </span>
+                    )}
+                    {isActive && <ChevronRight className="w-3 h-3 text-[#00D9C0]/60" />}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
 
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider px-2 mb-1">
-            Coming Soon
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            {comingSoon.map((item) => (
-              <SidebarMenuItem key={item.label}>
-                <SidebarMenuButton
-                  disabled
-                  className="w-full justify-start gap-3 px-3 py-2 rounded-lg text-sm opacity-40 cursor-not-allowed"
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  <span>{item.label}</span>
-                  <span className="ml-auto text-[10px] font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
-                    Soon
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
+      <div className="h-px bg-white/[0.06] mx-5" />
 
-      <SidebarFooter className="px-2 py-3">
-        <Separator className="bg-sidebar-border mb-3" />
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={handleSignOut}
-              className="w-full justify-start gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-150"
-            >
-              <LogOut className="h-4 w-4 shrink-0" />
-              <span>Sign out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
+      {/* AI Status Banner */}
+      <div className="mx-3 my-3 p-3 rounded-xl bg-gradient-to-br from-[#00D9C0]/10 to-[#141B41]/50 border border-[#00D9C0]/20">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#00D9C0] animate-pulse" />
+          <span className="text-[10px] font-semibold text-[#00D9C0]">AI CEO Active</span>
+        </div>
+        <p className="text-[10px] text-white/40 leading-relaxed">Monitoring 3 active workflows</p>
+      </div>
+
+      {/* User */}
+      <div className="px-3 pb-4">
+        <button
+          onClick={() => router.push("/login")}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.05] transition-all group"
+        >
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#00D9C0] to-[#141B41] flex items-center justify-center text-white text-[10px] font-bold">
+            D
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-xs font-semibold text-white/70">Demo User</p>
+            <p className="text-[10px] text-white/30">Owner</p>
+          </div>
+          <LogOut className="w-3.5 h-3.5 text-white/20 group-hover:text-red-400 transition-colors" />
+        </button>
+      </div>
+    </aside>
   );
 }
