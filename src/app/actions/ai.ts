@@ -67,7 +67,7 @@ export async function resolveRecommendationAction(recommendationId: string, stat
       if (!result.success) {
         // Even if workflow failed, the decision was approved, but execution failed.
         // We throw so the UI can show a toast error for the execution part.
-        throw new Error(result.error || "Workflow execution failed");
+        throw new Error((result as any).error || "Workflow execution failed");
       }
     }
     
