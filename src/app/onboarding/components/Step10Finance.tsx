@@ -4,8 +4,6 @@ import { useOnboarding } from "@/context/OnboardingContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BuildingLibraryIcon } from "@heroicons/react/24/outline"; // Just use a lucide icon instead since heroicons might not be installed
-
 import { Landmark, ArrowRight } from "lucide-react";
 
 export function Step10Finance() {

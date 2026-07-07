@@ -33,8 +33,8 @@ export const auth = betterAuth({
   },
 });
 
-// Demo mode override
-auth.api.getSession = async (options?: any) => {
+// Demo mode override — cast to any to bypass strict BetterAuth endpoint types
+(auth.api as any).getSession = async (_options?: any) => {
   return {
     user: {
       id: "demo-user-123",
@@ -55,5 +55,5 @@ auth.api.getSession = async (options?: any) => {
       createdAt: new Date(),
       updatedAt: new Date()
     }
-  } as any;
+  };
 };

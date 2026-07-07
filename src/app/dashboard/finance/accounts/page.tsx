@@ -22,7 +22,7 @@ export default function ChartOfAccounts() {
           const accs = await accRes.json();
           const bals = await balRes.json();
           
-          const balMap = new Map(bals.map((b: any) => [b.accountId, b]));
+          const balMap = new Map<string, any>(bals.map((b: any) => [b.accountId, b]));
           
           setAccounts(accs.map((a: any) => ({
             ...a,
