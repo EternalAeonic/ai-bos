@@ -11,6 +11,7 @@ import {
   LogOut,
   ChevronRight,
   Bot,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -32,6 +33,11 @@ const navItems = [
     label: "Overview",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    label: "Inventory",
+    href: "/dashboard/inventory",
+    icon: Package,
   },
   {
     label: "Settings",
