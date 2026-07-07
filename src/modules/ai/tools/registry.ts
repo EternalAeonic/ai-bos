@@ -261,6 +261,133 @@ export const getAITools = (businessId: string): Record<string, AIToolConfig> => 
         version: "1.0",
         affectedModules: ["INVENTORY", "SUPPLIERS", "FINANCE"]
       }
+    },
+
+    readInventoryTool: {
+      description: "Read the complete list of products and current stock.",
+      parameters: z.object({}),
+      execute: async () => {
+        const { ProductService } = await import("@/modules/inventory/services/product-service");
+        const products = await ProductService.listProducts(businessId);
+        return { products };
+      },
+      metadata: {
+        name: "Read Inventory",
+        risk: "LOW",
+        permissions: ["inventory.view"],
+        requiredModule: "INVENTORY",
+        estimatedCost: 0,
+        executionType: "READ",
+        rollbackSupport: false,
+        version: "1.0",
+        affectedModules: ["INVENTORY"]
+      }
+    },
+
+    createProductWorkflowTool: {
+      description: "Prepare a workflow to create a new Product. Requires verification.",
+      parameters: z.object({
+        name: z.string(),
+        sku: z.string().optional(),
+        barcode: z.string().optional(),
+        categoryId: z.string().optional(),
+        supplierId: z.string().optional(),
+        warehouseId: z.string().optional(),
+        unit: z.string().optional(),
+        costPrice: z.number().optional(),
+        sellingPrice: z.number().optional(),
+        minStockLevel: z.number().optional(),
+        maxStockLevel: z.number().optional(),
+        reorderPoint: z.number().optional()
+      }),
+      execute: async (args: any) => {
+        return {
+          status: "PREPARED",
+          actionType: "CREATE_PRODUCT_WORKFLOW",
+          sourceModule: "INVENTORY",
+          payload: args,
+          message: "Product creation workflow prepared and waiting for approval.",
+          isReversible: true,
+          numberOfRecords: 1
+        };
+      },
+      metadata: {
+        name: "Create Product Workflow",
+        risk: "MEDIUM",
+        permissions: ["inventory.create"],
+        requiredModule: "INVENTORY",
+        estimatedCost: 0,
+        executionType: "WORKFLOW",
+        rollbackSupport: true,
+        version: "1.0",
+        affectedModules: ["INVENTORY"]
+      }
+    },
+
+    recordMovementWorkflowTool: {
+      description: "Prepare a workflow to record a manual stock movement (e.g. DAMAGE, EXPIRED). Requires verification.",
+      parameters: z.object({
+        productId: z.string(),
+        warehouseId: z.string(),
+        type: z.enum(["DAMAGE", "EXPIRED", "ADJUSTMENT"]),
+        quantity: z.number(),
+        notes: z.string().optional()
+      }),
+      execute: async (args: any) => {
+        return {
+          status: "PREPARED",
+          actionType: "RECORD_MOVEMENT_WORKFLOW",
+          sourceModule: "INVENTORY",
+          payload: args,
+          message: "Stock movement workflow prepared and waiting for approval.",
+          isReversible: false, // Movements are append-only ledger
+          numberOfRecords: 1
+        };
+      },
+      metadata: {
+        name: "Record Movement Workflow",
+        risk: "HIGH",
+        permissions: ["inventory.movement"],
+        requiredModule: "INVENTORY",
+        estimatedCost: 0,
+        executionType: "WORKFLOW",
+        rollbackSupport: false,
+        version: "1.0",
+        affectedModules: ["INVENTORY"]
+      }
+    },
+
+    transferStockWorkflowTool: {
+      description: "Prepare a workflow to transfer stock between two warehouses. Requires verification.",
+      parameters: z.object({
+        productId: z.string(),
+        fromWarehouseId: z.string(),
+        toWarehouseId: z.string(),
+        quantity: z.number(),
+        notes: z.string().optional()
+      }),
+      execute: async (args: any) => {
+        return {
+          status: "PREPARED",
+          actionType: "TRANSFER_STOCK_WORKFLOW",
+          sourceModule: "INVENTORY",
+          payload: args,
+          message: "Stock transfer workflow prepared and waiting for approval.",
+          isReversible: false,
+          numberOfRecords: 2 // Two ledger entries (out and in)
+        };
+      },
+      metadata: {
+        name: "Transfer Stock Workflow",
+        risk: "HIGH",
+        permissions: ["inventory.transfer"],
+        requiredModule: "INVENTORY",
+        estimatedCost: 0,
+        executionType: "WORKFLOW",
+        rollbackSupport: false,
+        version: "1.0",
+        affectedModules: ["INVENTORY"]
+      }
     }
 
   };
