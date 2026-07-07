@@ -1,4 +1,5 @@
 import { OnboardingProvider } from "@/context/OnboardingContext";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -6,6 +7,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       <OnboardingProvider>
         {children}
       </OnboardingProvider>
+      <Toaster position="bottom-right" richColors />
     </div>
   );
 }

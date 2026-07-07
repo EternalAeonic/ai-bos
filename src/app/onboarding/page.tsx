@@ -20,10 +20,12 @@ import { Step13Integrations } from "./components/Step13Integrations";
 import { Step14Review } from "./components/Step14Review";
 import { Step15Success } from "./components/Step15Success";
 
+import { Loader2 } from "lucide-react";
+
 const TOTAL_STEPS = 15;
 
 export default function OnboardingPage() {
-  const { step, nextStep, prevStep } = useOnboarding();
+  const { step, nextStep, prevStep, saving } = useOnboarding();
 
   const progress = (step / TOTAL_STEPS) * 100;
 
@@ -56,9 +58,12 @@ export default function OnboardingPage() {
           <div className="font-bold text-lg tracking-tight">AI-BOS</div>
           
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" className="text-[#8A8F98] hover:text-[#141B41]">
-              <Save className="w-4 h-4 mr-2" /> Save Draft
-            </Button>
+            {saving && (
+              <div className="flex items-center gap-1.5 text-xs text-[#00D9C0] font-medium">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Saving…
+              </div>
+            )}
             <Button variant="ghost" size="icon" className="text-[#8A8F98] hover:text-[#141B41]">
               <HelpCircle className="w-4 h-4" />
             </Button>
@@ -106,8 +111,10 @@ export default function OnboardingPage() {
               Estimated completion: {15 - step} mins remaining
             </div>
 
-            <Button onClick={nextStep} className="bg-[#141B41] hover:bg-[#00D9C0] text-white px-8 transition-colors">
-              Continue
+            <Button onClick={nextStep} disabled={saving} className="bg-[#141B41] hover:bg-[#00D9C0] text-white px-8 transition-colors disabled:opacity-60">
+              {saving ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</>
+              ) : step === 14 ? "Finish Setup" : "Continue"}
             </Button>
           </div>
         </footer>
