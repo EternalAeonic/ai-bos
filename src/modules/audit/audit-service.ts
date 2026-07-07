@@ -1,9 +1,9 @@
-import { ActorType, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 export type AuditLogInput = {
   businessId: string;
   userId?: string;
-  actorType?: ActorType;
+  actorType?: string;
   action: string;
   entity: string;
   entityId: string;
@@ -20,7 +20,7 @@ export class AuditService {
       data: {
         businessId: input.businessId,
         userId: input.userId,
-        actorType: input.actorType ?? ActorType.USER,
+        actorType: input.actorType ?? "USER",
         action: input.action,
         entity: input.entity,
         entityId: input.entityId,
