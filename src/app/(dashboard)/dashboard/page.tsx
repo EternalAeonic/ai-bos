@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Bot, Zap, Package, Banknote, Clock, CheckCircle2, ArrowUpRight, MapPin, Users, Truck } from "lucide-react";
+import { AICeoPanel } from "@/components/dashboard/ai-ceo-panel";
 
 const DEMO_BUSINESS_ID = "demo-business-123";
 
@@ -229,27 +230,9 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* AI Insight */}
-          <div className="bg-gradient-to-br from-[#00D9C0]/10 to-[#141B41]/30 border border-[#00D9C0]/20 rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Bot className="w-4 h-4 text-[#00D9C0]" />
-              <span className="text-xs font-bold text-[#00D9C0] uppercase tracking-wider">AI Insight</span>
-            </div>
-            {business?.onboardingComplete ? (
-              <p className="text-xs text-white/50 leading-relaxed">
-                Business profile complete. AI CEO will activate once Purchase Automation is configured in Sprint 5.
-              </p>
-            ) : (
-              <p className="text-xs text-white/50 leading-relaxed">
-                Your business setup is {score}% complete. Add {missingItems.length} more items to unlock full AI CEO capabilities.
-              </p>
-            )}
-            <Link
-              href={business?.onboardingComplete ? "/dashboard/profile" : "/onboarding"}
-              className="mt-4 w-full flex items-center justify-center gap-1.5 py-2 text-[10px] font-bold text-[#00D9C0] bg-[#00D9C0]/10 hover:bg-[#00D9C0]/20 rounded-lg transition-colors"
-            >
-              {business?.onboardingComplete ? "View Profile" : "Complete Setup"} <ArrowUpRight className="w-3 h-3" />
-            </Link>
+          {/* Local AI CEO */}
+          <div className="h-[600px]">
+            <AICeoPanel businessId={DEMO_BUSINESS_ID} />
           </div>
 
           {/* Activity */}
