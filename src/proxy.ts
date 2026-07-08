@@ -12,14 +12,10 @@ export function proxy(request: NextRequest) {
   const isPublic = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
-  // Redirect authenticated users away from auth pages
-  if (sessionCookie && isAuthRoute) {
+  // DEMO MODE: Bypass all authentication checks
+  // Let everyone access the dashboard without logging in
+  if (isAuthRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Redirect unauthenticated users to login
-  if (!sessionCookie && !isPublic) {
-    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   return NextResponse.next();
