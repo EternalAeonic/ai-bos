@@ -16,7 +16,8 @@ export async function createProductAction(businessId: string, userId: string, da
   const result = await ProductService.createProduct(businessId, userId, data);
   revalidatePath("/dashboard/inventory/products");
   revalidatePath("/dashboard/inventory");
-  return result;
+  // Serialize Decimal and Date objects by converting to JSON and back
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function updateProductAction(businessId: string, userId: string, productId: string, data: any) {
@@ -24,18 +25,19 @@ export async function updateProductAction(businessId: string, userId: string, pr
   revalidatePath("/dashboard/inventory/products");
   revalidatePath(`/dashboard/inventory/products/${productId}`);
   revalidatePath("/dashboard/inventory");
-  return result;
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function deleteProductAction(businessId: string, userId: string, productId: string) {
   const result = await ProductService.deleteProduct(businessId, userId, productId);
   revalidatePath("/dashboard/inventory/products");
   revalidatePath("/dashboard/inventory");
-  return result;
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function getProductStockAction(businessId: string, productId: string) {
-  return await StockCalculationService.getProductTotalStock(businessId, productId);
+  const result = await StockCalculationService.getProductTotalStock(businessId, productId);
+  return JSON.parse(JSON.stringify(result));
 }
 
 // ==========================================
@@ -46,7 +48,7 @@ export async function createCategoryAction(businessId: string, userId: string, d
   const result = await CategoryService.create(businessId, userId, data);
   revalidatePath("/dashboard/inventory/categories");
   revalidatePath("/dashboard/inventory/products/new");
-  return result;
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function updateCategoryAction(businessId: string, userId: string, categoryId: string, data: { name?: string; parentCategoryId?: string }) {
@@ -62,7 +64,7 @@ export async function createWarehouseAction(businessId: string, userId: string, 
   const result = await WarehouseService.create(businessId, userId, data);
   revalidatePath("/dashboard/inventory/warehouses");
   revalidatePath("/dashboard/inventory/products/new");
-  return result;
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function updateWarehouseAction(businessId: string, userId: string, warehouseId: string, data: any) {
@@ -78,7 +80,7 @@ export async function createSupplierAction(businessId: string, userId: string, d
   const result = await SupplierService.create(businessId, userId, data);
   revalidatePath("/dashboard/inventory/suppliers");
   revalidatePath("/dashboard/inventory/products/new");
-  return result;
+  return JSON.parse(JSON.stringify(result));
 }
 
 // ==========================================
@@ -93,7 +95,7 @@ export async function recordMovementAction(businessId: string, userId: string, d
   if (data.productId) {
     revalidatePath(`/dashboard/inventory/products/${data.productId}`);
   }
-  return result;
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function transferStockAction(businessId: string, userId: string, data: {
