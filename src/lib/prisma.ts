@@ -15,8 +15,8 @@ export async function withBusinessContext<T>(
   callback: (tx: Prisma.TransactionClient) => Promise<T>
 ): Promise<T> {
   return await prisma.$transaction(async (tx) => {
-    // Set the local transaction variable for RLS using set_config to prevent SQL injection
-    await tx.$executeRaw`SELECT set_config('app.current_business', ${businessId}, true)`;
+    // RLS set_config removed to prevent PgBouncer/Neon compatibility errors on Vercel.
+    // All queries must explicitly pass { where: { businessId } } instead.
     
     // Execute the callback with this isolated transaction
     return await callback(tx);
