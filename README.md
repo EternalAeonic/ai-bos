@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 AI-BOS (Artificial Intelligence Business Operating System)
 
-## Getting Started
+AI-BOS is a next-generation, multi-tenant Business Operating System designed to autonomously run small to medium-sized businesses. It replaces traditional ERPs with a modern, beautifully designed interface, an immutable accounting ledger, and a deterministic "Local AI CEO" that actively monitors your business health, inventory, and finances to provide actionable insights.
 
-First, run the development server:
+---
 
+## ✨ Key Features
+- **🤖 Local AI CEO:** A deterministic intelligence engine that queries your business data in real-time to alert you of low stock, financial anomalies, and operational inefficiencies—all without relying on external APIs.
+- **🏢 Multi-Tenant Architecture:** Built from the ground up for massive scale. Every query and data point is strictly isolated to its respective `businessId`.
+- **📦 Advanced Inventory Management:** Handles warehouses, multi-level categories, suppliers, and stock tracking.
+- **🔒 Immutable Ledgers:** Stock levels and financial balances are never stored as mutable integers. They are strictly calculated dynamically from an append-only `InventoryMovement` and `JournalLine` ledger to prevent data corruption.
+- **⚡ Blazing Fast UI:** Built on Next.js 15 App Router and React Server Components for instant navigation and data fetching.
+
+---
+
+## 🛠️ Tech Stack
+- **Frontend Framework:** Next.js 15 (App Router, Server Actions)
+- **Styling:** Tailwind CSS & Lucide Icons (Glassmorphism & Dark Mode)
+- **Database:** PostgreSQL (Neon Serverless)
+- **ORM:** Prisma
+- **Deployment:** Vercel
+
+---
+
+## 📚 Official Documentation
+Want to learn how the system works or how to present it? Check out our official documentation:
+- 📘 [AI-BOS for Beginners](./docs/AI-BOS_for_Beginners.md) - The step-by-step training manual.
+- 📖 [User Manual](./docs/AI-BOS_User_Manual.md) - Comprehensive breakdown of all modules.
+- 🏗️ [Architecture Guide](./docs/AI-BOS_Architecture.md) - How the immutable ledger and database work.
+- 🎤 [Demo Script](./docs/AI-BOS_Demo_Script.md) - A 10-minute presentation guide.
+- ⚡ [Quick Start](./docs/AI-BOS_Quick_Start.md) - 2-minute checklist to populate your database.
+
+---
+
+## 💻 How to Work on It (Local Setup)
+
+To run the AI-BOS environment on your local machine, follow these steps:
+
+### 1. Clone the Repository
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/EternalAeonic/ai-bos.git
+cd ai-bos
 ```
 
+### 2. Install Dependencies
+```bash
+npm install
+```
+
+### 3. Setup Environment Variables
+Create a file named `.env.local` in the root folder and add your Neon Postgres database URL and a random 32-character secret string for authentication:
+```env
+POSTGRES_URL="postgresql://user:password@hostname.neon.tech/neondb?sslmode=require"
+BETTER_AUTH_SECRET="your-super-secret-32-character-key-here"
+```
+
+### 4. Push the Database Schema
+This will synchronize your Prisma schema with your PostgreSQL database:
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+### 5. Run the Development Server
+```bash
+npm run dev
+```
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🗺️ Future Plan & Roadmap
 
-## Learn More
+AI-BOS is being developed in aggressive, feature-complete sprints.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+✅ **Sprint 1-3 (Foundation):** Multi-tenant DB, soft deletes, audit logging, Next.js architecture.
+✅ **Sprint 4 (Business Profile):** Onboarding wizard, org setup, locations, employees.
+✅ **Sprint 5-9 (Inventory):** Warehouses, Product management, Immutable Movements ledger.
+✅ **Sprint 10 (Local AI CEO):** Deterministic AI business health monitor.
+🚀 **Sprint 11 (Purchasing):** Supplier orders, PO management, and automated reordering.
+🚀 **Sprint 12 (Finance):** Double-entry accounting, General Ledger, and trial balance.
+🚀 **Sprint 13 (Cloud AI):** Swapping the deterministic AI brain with Gemini/OpenAI for advanced natural language processing.
